@@ -1,4 +1,10 @@
 .git/
 .vscode/
+.github/
 Makefile
 README.md
+.golangci.yml
+.dockerignore
+.gitignore
+.gitattributes
+LICENSE

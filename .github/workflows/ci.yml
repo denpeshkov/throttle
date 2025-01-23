@@ -7,11 +7,34 @@ on:
 
 jobs:
   build:
-    name: Build, lint and test
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ["1.21", "1.22", "1.23"]
+        go: ["1.23"]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment (go${{ matrix.go }})
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache-dependency-path: '**/go.sum'
+
+      - name: Download Dependencies
+        run: |
+          go mod download -x
+          (cd internal/throttletest && go mod download -x)
+
+      - name: Test
+        run: make test
+    
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ["1.23"]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -22,13 +45,14 @@ jobs:
           go-version: ${{ matrix.go }}
           cache: false # managed by golangci-lint
 
-      - name: Download Dependencies
-        run: go mod download -x
-
-      - name: Lint
+      - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
-
-      - name: Test
-        run: go test -v -race ./...
+          # Hack: Use the official action to download, but not run.
+          # make lint below will handle actually running the linter.
+          args: --help
+      
+      - name: Lint
+        run: make lint
+        

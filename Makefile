@@ -1,5 +1,7 @@
 .PHONY: all
-all: tidy lint test/cover
+all: tidy lint test
+
+MODULE_DIRS = . ./internal/throttletest
 
 .PHONY: help
 help: ## Display this help screen
@@ -7,21 +9,21 @@ help: ## Display this help screen
 
 .PHONY: tidy
 tidy: ## Tidy
-	go mod tidy -v
-	go mod verify
-	go fmt ./... 
-	go vet ./...
-	staticcheck ./...
+	@$(foreach mod,$(MODULE_DIRS), \
+		(cd $(mod) && \
+		go mod tidy -v && \
+		go mod verify && \
+		go fmt ./... &&\
+		go vet ./... && \
+		staticcheck ./...) &&) true
 
 .PHONY: lint
 lint: ## Lint
-	docker run -t --rm -v .:/app -v ~/.cache/golangci-lint/v1.61.0:/root/.cache -w /app golangci/golangci-lint:v1.61.0 golangci-lint run -v -c .golangci.yml
+	@$(foreach mod,$(MODULE_DIRS), \
+		(cd $(mod) && golangci-lint run --path-prefix $(mod) ./...) &&) true
+
 
 .PHONY: test
 test: ## Test
-	go test -race -buildvcs -count=1 ./...
-
-.PHONY: test/cover
-test/cover: ## Test and cover
-	go test -race -count=1 -coverprofile=cover.out ./...
-	go tool cover -html=cover.out
+	@$(foreach mod,$(MODULE_DIRS), \
+		(cd $(mod) && go test -race -buildvcs -count=1 ./...) &&) true

@@ -1,0 +1,1 @@
+This submodule exists to test throttle against Redis without adding a dependency on Redis.
