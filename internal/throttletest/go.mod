@@ -3,7 +3,7 @@ module github.com/denpeshkov/throttle/throttletest
 go 1.23
 
 require (
-	github.com/denpeshkov/throttle v0.0.0-00010101000000-000000000000
+	github.com/denpeshkov/throttle v0.1.0
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/testcontainers/testcontainers-go v0.35.0
 	github.com/testcontainers/testcontainers-go/modules/redis v0.35.0
