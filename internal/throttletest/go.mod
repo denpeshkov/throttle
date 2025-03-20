@@ -4,7 +4,7 @@ go 1.23
 
 require (
 	github.com/denpeshkov/throttle v0.1.0
-	github.com/redis/go-redis/v9 v9.7.0
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/testcontainers/testcontainers-go v0.35.0
 	github.com/testcontainers/testcontainers-go/modules/redis v0.35.0
 	go.uber.org/goleak v1.3.0
