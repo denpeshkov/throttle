@@ -8,7 +8,11 @@ import (
 )
 
 func TestInvalidLimit_BucketLimiter(t *testing.T) {
+	t.Parallel()
+
 	t.Run("invalid interval", func(t *testing.T) {
+		t.Parallel()
+
 		intervals := []time.Duration{-1, 0, 999 * time.Nanosecond}
 		for _, in := range intervals {
 			lim := Limit{Events: 1, Interval: in}
@@ -24,6 +28,8 @@ func TestInvalidLimit_BucketLimiter(t *testing.T) {
 	})
 
 	t.Run("invalid events", func(t *testing.T) {
+		t.Parallel()
+
 		lim := Limit{Events: -1, Interval: 1 * time.Second}
 		l, err := NewBucketLimiter(nil, lim, 1)
 
@@ -37,6 +43,8 @@ func TestInvalidLimit_BucketLimiter(t *testing.T) {
 }
 
 func TestInvalidBurst_BucketLimiter(t *testing.T) {
+	t.Parallel()
+
 	lim := Limit{Events: 1, Interval: 1 * time.Second}
 	if _, err := NewBucketLimiter(nil, lim, -1); err == nil {
 		t.Fatalf("NewBucketLimiter(%v, %v) didn't fail", lim, -1)

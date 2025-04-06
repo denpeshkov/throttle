@@ -73,3 +73,6 @@ func main() {
 	_ = status.Delay
 }
 ```
+# Requirements
+
+This library requires Redis version 7.4.0 or later.

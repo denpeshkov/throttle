@@ -1,0 +1,48 @@
+version: "2"
+
+run:
+  timeout: 2m
+
+linters:
+  default: all
+  disable:
+    - cyclop
+    - decorder
+    - depguard
+    - dogsled
+    - dupl
+    - dupword
+    - err113
+    - funlen
+    - ginkgolinter
+    - gocognit
+    - gocyclo
+    - godox
+    - inamedparam
+    - ireturn
+    - lll
+    - maintidx
+    - mnd
+    - nestif
+    - nilnil
+    - nlreturn
+    - nonamedreturns
+    - testifylint
+    - testpackage
+    - varnamelen
+    - whitespace
+    - wrapcheck
+    - wsl
+    - paralleltest
+  settings:
+    gomoddirectives:
+      replace-local: true
+  
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/denpeshkov/throttle

@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	rds "github.com/redis/go-redis/v9"
-	"github.com/testcontainers/testcontainers-go"
+	tc "github.com/testcontainers/testcontainers-go"
+	tclog "github.com/testcontainers/testcontainers-go/log"
 	"github.com/testcontainers/testcontainers-go/modules/redis"
 )
 
@@ -26,7 +27,7 @@ func (r rediser) Del(ctx context.Context, keys ...string) (int64, error) {
 func setupRedis(tb testing.TB) rediser {
 	tb.Helper()
 
-	reds, err := redis.Run(context.Background(), "redis:latest", testcontainers.WithLogger(testcontainers.TestLogger(tb)))
+	reds, err := redis.Run(context.Background(), "redis:latest", tc.WithLogger(tclog.TestLogger(tb)))
 	if err != nil {
 		tb.Fatalf("Failed to create Redis container %v", err)
 	}
@@ -34,7 +35,7 @@ func setupRedis(tb testing.TB) rediser {
 	if err != nil {
 		tb.Fatalf("Failed to get Redis container endpoint %v", err)
 	}
-	rdb := rds.NewClient(&rds.Options{Addr: addr})
+	rdb := rds.NewClient(&rds.Options{Addr: addr}) //nolint:exhaustruct
 	tb.Cleanup(func() {
 		if err := reds.Terminate(context.Background()); err != nil {
 			tb.Fatalf("Failed to terminate Redis container %v", err)

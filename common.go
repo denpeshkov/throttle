@@ -2,7 +2,6 @@ package throttle
 
 import (
 	"context"
-	_ "embed"
 	"errors"
 	"fmt"
 	"math"

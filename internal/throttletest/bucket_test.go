@@ -22,6 +22,7 @@ func newBucketLimiter(t *testing.T, rds rediser, lim throttle.Limit, burst int, 
 
 const d = 100 * time.Millisecond
 
+//nolint:gochecknoglobals
 var (
 	t0 = time.Now()
 	t1 = t0.Add(time.Duration(1) * d)

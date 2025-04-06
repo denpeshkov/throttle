@@ -3,9 +3,9 @@ package throttle
 import (
 	"context"
 	"crypto/sha1" //nolint:gosec
-	_ "embed"
+	_ "embed"     // embed lua script
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"io"
 	"strings"
 	"sync"
@@ -34,7 +34,7 @@ func NewBucketLimiter(rds Rediser, limit Limit, burst int, opts ...Option) (*Buc
 		return nil, err
 	}
 	if burst < 0 {
-		return nil, fmt.Errorf("burst is negative")
+		return nil, errors.New("burst is negative")
 	}
 
 	options := options{
@@ -55,6 +55,7 @@ func NewBucketLimiter(rds Rediser, limit Limit, burst int, opts ...Option) (*Buc
 		clock:  options.clock,
 		lim:    limit,
 		burst:  burst,
+		mu:     sync.Mutex{},
 	}, nil
 }
 
@@ -64,6 +65,8 @@ func (l *BucketLimiter) Allow(ctx context.Context, key string) (Status, error) {
 }
 
 // AllowN determines whether n events for the specified key are permitted at the current time.
+//
+//nolint:forcetypeassert
 func (l *BucketLimiter) AllowN(ctx context.Context, key string, n int) (Status, error) {
 	l.mu.Lock()
 	lim := l.lim
@@ -83,7 +86,7 @@ func (l *BucketLimiter) AllowN(ctx context.Context, key string, n int) (Status, 
 	if err != nil {
 		return Status{}, err
 	}
-	values := v.([]interface{})
+	values := v.([]any)
 
 	var delay time.Duration
 	if v := values[2].(int64); v == -1 {
@@ -107,7 +110,7 @@ func (l *BucketLimiter) Limit() Limit {
 }
 
 // SetLimit sets a new limit.
-func (l *BucketLimiter) SetLimit(ctx context.Context, newLimit Limit) error {
+func (l *BucketLimiter) SetLimit(_ context.Context, newLimit Limit) error {
 	if err := newLimit.Valid(); err != nil {
 		return err
 	}
@@ -128,7 +131,7 @@ func (l *BucketLimiter) Burst() int {
 // SetBurst sets a new burst.
 func (l *BucketLimiter) SetBurst(b int) error {
 	if b < 0 {
-		return fmt.Errorf("burst is negative")
+		return errors.New("burst is negative")
 	}
 
 	l.mu.Lock()

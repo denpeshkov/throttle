@@ -3,7 +3,7 @@ package throttle
 import (
 	"context"
 	"crypto/sha1" //nolint:gosec
-	_ "embed"
+	_ "embed"     // embed lua script
 	"encoding/hex"
 	"io"
 	"strings"
@@ -49,10 +49,13 @@ func NewSWLogLimiter(rds Rediser, limit Limit, opts ...Option) (*SWLogLimiter, e
 		keyTTL: options.keyTTL,
 		clock:  options.clock,
 		lim:    limit,
+		mu:     sync.Mutex{},
 	}, nil
 }
 
 // Allow determines whether the event for the specified key is permitted at the current time.
+//
+//nolint:forcetypeassert
 func (l *SWLogLimiter) Allow(ctx context.Context, key string) (Status, error) {
 	l.mu.Lock()
 	lim := l.lim
@@ -70,11 +73,11 @@ func (l *SWLogLimiter) Allow(ctx context.Context, key string) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	values := v.([]interface{})
+	values := v.([]any)
 	return Status{
 		Limited:   values[0].(int64) != 0,
 		Remaining: int(values[1].(int64)),
-		Delay:     time.Duration(values[2].(int64)) * time.Millisecond,
+		Delay:     time.Duration(values[2].(int64)) * time.Millisecond, //nolint:durationcheck
 	}, nil
 }
 
@@ -86,7 +89,7 @@ func (l *SWLogLimiter) Limit() Limit {
 }
 
 // SetLimit sets a new limit.
-func (l *SWLogLimiter) SetLimit(ctx context.Context, newLimit Limit) error {
+func (l *SWLogLimiter) SetLimit(_ context.Context, newLimit Limit) error {
 	if err := newLimit.Valid(); err != nil {
 		return err
 	}

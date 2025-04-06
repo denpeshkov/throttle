@@ -54,7 +54,7 @@ type clock struct {
 }
 
 func newClock() *clock {
-	return &clock{t: time.Now()}
+	return &clock{t: time.Now(), mu: sync.Mutex{}}
 }
 
 func (c *clock) String() string {
@@ -80,10 +80,13 @@ func (c *clock) add(d time.Duration) {
 }
 
 func verifyNoLeaks(t *testing.T) {
+	t.Helper()
+
 	goleak.VerifyNone(t,
 		goleak.IgnoreTopFunction("github.com/jackc/pgx/v5/pgxpool.(*Pool).backgroundHealthCheck"),
 		goleak.IgnoreAnyFunction("github.com/jackc/pgx/v5/pgxpool.(*Pool).trggerHealthCheck.func1"),
 		goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"),    // ignore cached connections
 		goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), // ignore cached connections
+		goleak.IgnoreTopFunction("testing.tRunner.func1"),
 	)
 }
