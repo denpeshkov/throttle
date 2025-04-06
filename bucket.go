@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
-	"strings"
 	"sync"
 	"time"
 )
@@ -19,7 +18,7 @@ var bucketScript string
 // It works with a 1ms resolution.
 type BucketLimiter struct {
 	rds    Rediser
-	sha    string
+	script script
 	keyTTL time.Duration
 	clock  func() time.Time
 
@@ -48,9 +47,15 @@ func NewBucketLimiter(rds Rediser, limit Limit, burst int, opts ...Option) (*Buc
 	h := sha1.New() //nolint:gosec
 	_, _ = io.WriteString(h, bucketScript)
 
+	script := script{
+		rds:    rds,
+		script: bucketScript,
+		sha:    hex.EncodeToString(h.Sum(nil)),
+	}
+
 	return &BucketLimiter{
 		rds:    rds,
-		sha:    hex.EncodeToString(h.Sum(nil)),
+		script: script,
 		keyTTL: options.keyTTL,
 		clock:  options.clock,
 		lim:    limit,
@@ -82,7 +87,7 @@ func (l *BucketLimiter) AllowN(ctx context.Context, key string, n int) (Status, 
 	keys := []string{key}
 	args := []any{lim.Events, lim.Interval.Milliseconds(), now.UTC().UnixMilli(), ttl.Milliseconds(), burst, n}
 
-	v, err := l.execScript(ctx, keys, args)
+	v, err := l.script.exec(ctx, keys, args)
 	if err != nil {
 		return Status{}, err
 	}
@@ -148,18 +153,4 @@ func (l *BucketLimiter) Reset(ctx context.Context, keys ...string) error {
 	}
 	_, err := l.rds.Del(ctx, keys...)
 	return err
-}
-
-func (l *BucketLimiter) execScript(ctx context.Context, keys []string, args ...any) (any, error) {
-	v, err := l.rds.EvalSHA(ctx, l.sha, keys, args...)
-	if err != nil && strings.HasPrefix(err.Error(), "NOSCRIPT") {
-		if _, err := l.rds.ScriptLoad(ctx, bucketScript); err != nil {
-			return nil, err
-		}
-		v, err = l.rds.EvalSHA(ctx, l.sha, keys, args...)
-	}
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
 }

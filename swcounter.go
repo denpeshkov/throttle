@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"io"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -19,7 +18,7 @@ var swCounterScript string
 // It works with a 1ms resolution.
 type SWCounterLimiter struct {
 	rds    Rediser
-	sha    string
+	script script
 	keyTTL time.Duration
 	clock  func() time.Time
 
@@ -44,9 +43,15 @@ func NewSWCounterLimiter(rds Rediser, limit Limit, opts ...Option) (*SWCounterLi
 	h := sha1.New() //nolint:gosec
 	_, _ = io.WriteString(h, swCounterScript)
 
+	script := script{
+		rds:    rds,
+		script: swCounterScript,
+		sha:    hex.EncodeToString(h.Sum(nil)),
+	}
+
 	return &SWCounterLimiter{
 		rds:    rds,
-		sha:    hex.EncodeToString(h.Sum(nil)),
+		script: script,
 		keyTTL: options.keyTTL,
 		clock:  options.clock,
 		lim:    limit,
@@ -73,7 +78,7 @@ func (l *SWCounterLimiter) Allow(ctx context.Context, key string) (Status, error
 	keys := []string{key, prevWindow, curWindow}
 	args := []any{lim.Events, interval, now, ttl.Milliseconds()}
 
-	v, err := l.execScript(ctx, keys, args)
+	v, err := l.script.exec(ctx, keys, args)
 	if err != nil {
 		return Status{}, err
 	}
@@ -112,18 +117,4 @@ func (l *SWCounterLimiter) Reset(ctx context.Context, keys ...string) error {
 	}
 	_, err := l.rds.Del(ctx, keys...)
 	return err
-}
-
-func (l *SWCounterLimiter) execScript(ctx context.Context, keys []string, args ...any) (any, error) {
-	v, err := l.rds.EvalSHA(ctx, l.sha, keys, args...)
-	if err != nil && strings.HasPrefix(err.Error(), "NOSCRIPT") {
-		if _, err := l.rds.ScriptLoad(ctx, swCounterScript); err != nil {
-			return nil, err
-		}
-		v, err = l.rds.EvalSHA(ctx, l.sha, keys, args...)
-	}
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
 }
